@@ -10,8 +10,10 @@ Data engineering-friendly toolkit for exploring how your Spotify music taste evo
 ## Getting started
 1. Create a Spotify application at <https://developer.spotify.com/dashboard/> and note the **Client ID** and **Client secret**.
    - In the Spotify Dashboard, add `http://localhost:8888/callback` (or `http://127.0.0.1:8888/callback`) as a redirect URI. The URI must match what TrendSetter uses during OAuth.
-2. Set up environment variables (or a `.env` file) with your credentials and redirect URI:
+2. Set up environment variables (or a `.env` file) with your credentials and redirect URI. You can copy the provided template and fill in your values from the Spotify dashboard (Client ID/secret and Redirect URI must match exactly):
    ```bash
+   cp .env.example .env
+   # then edit .env to match your dashboard:
    SPOTIFY_CLIENT_ID=your-client-id
    SPOTIFY_CLIENT_SECRET=your-client-secret
    SPOTIFY_REDIRECT_URI=http://localhost:8888/callback
@@ -39,6 +41,23 @@ The CLI is built with [Typer](https://typer.tiangolo.com/). Run commands with `p
   The report lists yearly totals, top artists/genres, audio feature averages, and how much you listened to brand-new releases vs. back-catalog tracks.
 
 Both commands write to `data/` by default so results are easy to version-control separately from credentials.
+
+### Test the pipeline with your own Spotify data
+After configuring your credentials and installing dependencies, you can validate the full flow end-to-end with your library:
+
+1. Start the OAuth flow and download your saved tracks to JSON (first run only):
+   ```bash
+   python -m trendsetter.cli fetch --output data/saved_tracks.json
+   ```
+   - A browser window opens for login; approve the requested scopes and wait for the redirect back to `http://localhost:8888/callback`.
+   - Tokens cache in `.cache-trendsetter` so follow-up runs do not prompt again unless the token expires.
+
+2. Generate per-year summaries you can graph (pie charts, box plots, etc.):
+   ```bash
+   python -m trendsetter.cli report --source data/saved_tracks.json --output data/yearly_taste.md
+   ```
+   - Inspect `data/yearly_taste.md` or load the JSON into a notebook/BI tool to power your visuals.
+   - The `release_year_mix` field breaks each year's listening into “same year,” “last 2 years,” and “older catalog,” which maps well to pie charts. `average_audio_features` can feed box plots or radar charts per year.
 
 ## How it works
 1. **Ingestion**: The `fetch` command paginates through your Saved Tracks, collecting add timestamps, artists, and album release dates.
